@@ -37,12 +37,12 @@ class MappingController extends Controller
 
         foreach ($files as $file) {
             $entries[] = [
-                'source' => $file->getFilename()
+                'source' => $file->getRelativePathname()
             ];
         }
         
         return response()->json([
-            'entries' => $entries,
+            'entries' => $entries
         ]);
     }
 
@@ -67,29 +67,37 @@ class MappingController extends Controller
         $entries = [];
 
         foreach ($files as $file) {
+            $relativePath = $file->getRelativePathname();
+            $pathInfo = pathinfo($relativePath);
+            $filename = $pathInfo['basename'];
+            $dir = $pathInfo['dirname'] !== '.' ? $pathInfo['dirname'] . '/' : '';
+
+            $newFilename = preg_replace(
+                $request['include_pattern'],
+                $request['target_template'],
+                $filename
+            );
+            $targetName = $dir . $newFilename;
+
             $processed = false;
-            $targetName = preg_replace($request['include_pattern'], $request['target_template'], $file->getFilename());
-        
             if ($rule) {
                 $mapping = Mapping::where('rule_id', $rule->id)
-                    ->where('source_name', $file->getFilename())
+                    ->where('source_name', $relativePath)
                     ->where('target_name', $targetName)
                     ->first();
                 
-                if ($mapping) {
-                    $processed = $mapping->processed;
-                }
+                $processed = $mapping->processed ?? false;
             }
 
             $entries[] = [
-                'source' => $file->getFilename(),
+                'source' => $relativePath,
                 'target' => $targetName,
                 'processed' => $processed,
             ];
         }
 
         return response()->json([
-            'entries' => $entries,
+            'entries' => $entries
         ]);
     }
 
@@ -106,66 +114,66 @@ class MappingController extends Controller
         $sourcePath = rtrim($request['source_dir'], '/') . '/';
         $targetPath = rtrim($request['target_dir'], '/') . '/';
 
-        $rule = Rule::where('source_dir', $sourcePath)
-            ->where('target_dir', $targetPath)
-            ->first();
-        
-        if (!$rule) {
-            $rule = Rule::create([
+        $rule = Rule::updateOrCreate(
+            [
                 'source_dir' => $sourcePath,
                 'target_dir' => $targetPath,
+            ],
+            [
                 'include_pattern' => $request['include_pattern'],
                 'exclude_pattern' => $request['exclude_pattern'],
                 'target_template' => $request['target_template']
-            ]);
-        }
+            ]
+        );
 
         $files = $this->getFiles($request);
         $entries = [];
 
         foreach ($files as $file) {
-            $sourceName = $file->getFilename();
-            $targetName = preg_replace($request['include_pattern'], $request['target_template'], $file->getFilename());
-            
-            $mapping = Mapping::where('rule_id', $rule->id)
-                ->where('source_name', $sourceName)
-                ->first();
-            
-            if ($mapping) {
-                if ($mapping->target_name !== $targetName) {
-                    if (File::exists($targetPath.$mapping->target_name)) {
-                        File::delete($targetPath.$mapping->target_name);
-                    }
+            $relativePath = $file->getRelativePathname();
+            $pathInfo = pathinfo($relativePath);
+            $filename = $pathInfo['basename'];
+            $dir = $pathInfo['dirname'] !== '.' ? $pathInfo['dirname'] . '/' : '';
 
-                    $this->hardLinking($sourcePath.$sourceName, $targetPath.$targetName);
-    
-                    $mapping->update([
-                        'target_name' => $targetName,
-                    ]);
-                }
-            } else {
-                $mapping = Mapping::create([
+            $newFilename = preg_replace(
+                $request['include_pattern'],
+                $request['target_template'],
+                $filename
+            );
+            $targetName = $dir . $newFilename;
+
+            $mapping = Mapping::updateOrCreate(
+                [
                     'rule_id' => $rule->id,
-                    'source_name' => $sourceName,
-                    'target_name' => $targetName,
-                ]);
+                    'source_name' => $relativePath
+                ],
+                ['target_name' => $targetName]
+            );
 
-                $this->hardLinking($sourcePath.$sourceName, $targetPath.$targetName);
+            $sourceFull = $sourcePath . $relativePath;
+            $targetFull = $targetPath . $targetName;
 
-                $mapping->update([
-                    'processed' => true,
-                ]);
+            if ($mapping->target_name !== $targetName) {
+                if (File::exists($targetPath . $mapping->target_name)) {
+                    File::delete($targetPath . $mapping->target_name);
+                }
+                $mapping->update(['target_name' => $targetName]);
+            }
+
+            if (!$mapping->processed || !File::exists($targetFull)) {
+                $this->hardLinking($sourceFull, $targetFull);
+                $mapping->update(['processed' => true]);
             }
 
             $entries[] = [
-                'source' => $mapping->source_name,
-                'target' => $mapping->target_name,
-                'processed' => $mapping->processed
+                'source' => $relativePath,
+                'target' => $targetName,
+                'processed' => $mapping->processed,
             ];
         }
 
         return response()->json([
-            'entries' => $entries,
+            'entries' => $entries
         ]);
     }
 
@@ -174,10 +182,10 @@ class MappingController extends Controller
         $request->validate([
             'rule_id' => 'required|exists:rules,id',
         ]);
-    
+
         $rule = Rule::findOrFail($request->rule_id);
         $mappings = Mapping::where('rule_id', $rule->id)->get();
-    
+
         foreach ($mappings as $mapping) {
             $targetFile = $rule->target_dir . $mapping->target_name;
             if (File::exists($targetFile)) {
@@ -185,23 +193,67 @@ class MappingController extends Controller
             }
             $mapping->delete();
         }
-    
+
+        $targetDir = rtrim($rule->target_dir, '/');
+        $subDirs = $this->getAllSubDirectories($targetDir);
+
+        usort($subDirs, function($a, $b) {
+            return substr_count($b, '/') - substr_count($a, '/');
+        });
+
+        foreach ($subDirs as $dir) {
+            if (File::isDirectory($dir)) {
+                $this->safeRemoveDir($dir);
+            }
+        }
+
+        $this->safeRemoveDir($targetDir);
         $rule->delete();
-    
+
         return redirect()->back();
     }
 
     private function getFiles($request)
     {
         $files = collect(File::allFiles($request->source_dir));
-    
-        $files = $files->filter(fn ($file) => preg_match($request->include_pattern, $file->getFilename()));
-        
+
+        $files = $files->filter(function ($file) use ($request) {
+            $relativePath = $file->getRelativePathname();
+            return preg_match($request->include_pattern, $relativePath);
+        });
+
         if ($request->exclude_pattern) {
-            $files = $files->reject(fn ($file) => preg_match($request->exclude_pattern, $file->getFilename()));
+            $files = $files->reject(function ($file) use ($request) {
+                $relativePath = $file->getRelativePathname();
+                return preg_match($request->exclude_pattern, $relativePath);
+            });
         }
 
         return $files;
+    }
+
+    private function getAllSubDirectories(string $dir): array
+    {
+        $subDirs = File::directories($dir);
+        $allDirs = [];
+
+        foreach ($subDirs as $subDir) {
+            $allDirs[] = $subDir;
+            $allDirs = array_merge($allDirs, $this->getAllSubDirectories($subDir));
+        }
+
+        return $allDirs;
+    }
+
+    private function safeRemoveDir(string $path): void
+    {
+        if (!File::isDirectory($path)) {
+            return;
+        }
+
+        if (count(File::files($path)) === 0 && count(File::directories($path)) === 0) {
+            @rmdir($path);
+        }
     }
 
     private function hardLinking($source, $target)

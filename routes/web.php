@@ -15,10 +15,10 @@ Route::middleware([
     Route::get('/', [MappingController::class, 'index'])->name('index');
     Route::get('/new', [MappingController::class, 'new'])->name('new');
 
-    Route::post('scan', [MappingController::class, 'scan']);
-    Route::post('preview', [MappingController::class, 'preview']);
-    Route::post('apply', [MappingController::class, 'apply']);
-    Route::post('remove', [MappingController::class, 'delete']);
+    Route::post('/scan', [MappingController::class, 'scan'])->name('scan');
+    Route::post('/preview', [MappingController::class, 'preview'])->name('preview');
+    Route::post('/apply', [MappingController::class, 'apply'])->name('apply');
+    Route::post('/remove', [MappingController::class, 'delete'])->name('delete');
 });
 
 require __DIR__.'/auth.php';

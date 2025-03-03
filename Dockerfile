@@ -18,17 +18,10 @@ RUN npm install && npm run build && npm prune --production
 
 FROM php:8.2-cli
 
-RUN apt-get update && apt-get install -y \
-    libzip-dev \
-    zip \
-    sqlite3 \
-    libsqlite3-dev \
-    sudo \
+RUN apt-get update && apt-get install -y libzip-dev zip sqlite3 libsqlite3-dev sudo \
     && docker-php-ext-install zip pdo pdo_sqlite \
     && apt-get remove -y libzip-dev libsqlite3-dev \
     && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
 
 ARG DB_CONNECTION=sqlite
 ARG DB_DATABASE=/data/data.db
@@ -42,12 +35,16 @@ ENV DB_CONNECTION=${DB_CONNECTION} \
     USER_ID=${USER_ID} \
     GROUP_ID=${GROUP_ID}
 
+RUN mkdir /app && \
+    groupadd -g ${GROUP_ID} app && \
+    useradd -u ${USER_ID} -g app -d /app app && \
+    usermod -a -G root app && \
+    chown -R app:app /app
+
+WORKDIR /app
+
 COPY --from=composer /app .
 COPY --from=node /app/public/build public/build
-
-RUN groupadd -g ${GROUP_ID} app && \
-    useradd -u ${USER_ID} -g app -d /app app && \
-    chown -R app:app /app
 
 EXPOSE ${PORT}
 
