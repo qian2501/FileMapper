@@ -1,5 +1,13 @@
 #!/bin/bash
 
+if [ ! "$(id -u app)" -eq "${USER_ID}" ]; then
+    usermod -o -u "${USER_ID}" app
+fi
+
+if [ ! "$(id -g app)" -eq "${GROUP_ID}" ]; then
+    groupmod -o -g "${GROUP_ID}" app
+fi
+
 if [ ! -d "/data" ]; then
     mkdir -p "/data"
     chown ${USER_ID}:${GROUP_ID} "/data"

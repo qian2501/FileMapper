@@ -263,7 +263,7 @@ class MappingController extends Controller
             File::makeDirectory($targetDir, 0755, true);
         }
         if (!File::exists($target)) {
-            File::link($source, $target);
+            link($source, $target);
         }
     }
 }
