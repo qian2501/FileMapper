@@ -52,4 +52,4 @@ COPY --chown=app:app docker/entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-CMD php artisan serve --host=0.0.0.0 --port=${PORT} --no-interaction
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--no-interaction"]
