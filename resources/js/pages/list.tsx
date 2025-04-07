@@ -126,6 +126,23 @@ export default function List({ rules }: ListProps) {
 
                             <div>
                               <h3 className="font-semibold mb-3 text-lg">Files Mapping</h3>
+
+                              <div className="grid grid-cols-2 gap-4 mb-4">
+                                <div className="p-3 rounded">
+                                  <h4 className="font-medium mb-1">Source Path</h4>
+                                  <p className="font-mono text-sm break-all">
+                                    {rule.source_dir}
+                                  </p>
+                                </div>
+
+                                <div className="p-3 rounded">
+                                  <h4 className="font-medium mb-1">Target Path</h4>
+                                  <p className="font-mono text-sm break-all">
+                                    {rule.target_dir}
+                                  </p>
+                                </div>
+                              </div>
+
                               <div className="overflow-x-auto">
                                 <table className="w-full border-collapse">
                                   <tbody>

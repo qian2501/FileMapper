@@ -131,32 +131,30 @@ export default function Edit({ rule }: { rule: RuleData }) {
         </div>
 
         <form className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="source_dir">Source Directory</Label>
-              <Input
-                name="source_dir"
-                value={formData.source_dir}
-                onChange={handleInputChange}
-                placeholder="/path/to/source"
-              />
-              {formErrors.source_dir && (
-                <InputError message={formErrors.source_dir[0]} />
-              )}
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="source_dir">Source Directory</Label>
+            <Input
+              name="source_dir"
+              value={formData.source_dir}
+              onChange={handleInputChange}
+              placeholder="/path/to/source"
+            />
+            {formErrors.source_dir && (
+              <InputError message={formErrors.source_dir[0]} />
+            )}
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="target_dir">Target Directory</Label>
-              <Input
-                name="target_dir"
-                value={formData.target_dir}
-                onChange={handleInputChange}
-                placeholder="/path/to/target"
-              />
-              {formErrors.target_dir && (
-                <InputError message={formErrors.target_dir[0]} />
-              )}
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="target_dir">Target Directory</Label>
+            <Input
+              name="target_dir"
+              value={formData.target_dir}
+              onChange={handleInputChange}
+              placeholder="/path/to/target"
+            />
+            {formErrors.target_dir && (
+              <InputError message={formErrors.target_dir[0]} />
+            )}
           </div>
 
           <div className="space-y-2">
