@@ -146,13 +146,22 @@ export default function List({ rules }: ListProps) {
                             </div>
 
                             <div className='flex justify-end'>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => handleUndo(rule.id)}
-                              >
-                                Remove This Rule
-                              </Button>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  asChild
+                                >
+                                  <Link href={`/edit/${rule.id}`}>Edit</Link>
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => handleUndo(rule.id)}
+                                >
+                                  Remove
+                                </Button>
+                              </div>
                             </div>
 
                           </div>

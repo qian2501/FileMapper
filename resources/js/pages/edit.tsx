@@ -1,6 +1,6 @@
 import axios from 'axios';
-import { useState } from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { useState, useEffect } from 'react';
+import { Head, Link, router } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import InputError from '@/components/input-error';
@@ -13,20 +13,42 @@ interface Entry {
   processed?: boolean;
 }
 
-export default function New() {
+interface RuleData {
+  id: number;
+  source_dir: string;
+  target_dir: string;
+  include_pattern: string;
+  exclude_pattern: string;
+  target_template: string;
+  mappings: {
+    source_name: string;
+    target_name: string;
+    processed: boolean;
+  }[];
+}
+
+export default function Edit({ rule }: { rule: RuleData }) {
   const [formData, setFormData] = useState({
-    source_dir: '',
-    target_dir: '',
-    include_pattern: '',
-    exclude_pattern: '',
-    target_template: '',
+    source_dir: rule.source_dir,
+    target_dir: rule.target_dir,
+    include_pattern: rule.include_pattern,
+    exclude_pattern: rule.exclude_pattern,
+    target_template: rule.target_template,
   });
 
   const [entries, setEntries] = useState<Entry[]>([]);
   const [formErrors, setFormErrors] = useState<Record<string, string[]>>({});
   const [isScanning, setIsScanning] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(false);
-  const [isApplying, setIsApplying] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  useEffect(() => {
+    setEntries(rule.mappings.map(mapping => ({
+      source: mapping.source_name,
+      target: mapping.target_name,
+      processed: mapping.processed
+    })));
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -45,7 +67,7 @@ export default function New() {
         setIsPreviewing(true);
         break;
       case 'apply':
-        setIsApplying(true);
+        setIsUpdating(true);
         break;
     }
 
@@ -55,6 +77,7 @@ export default function New() {
       source_dir: formData.source_dir,
       include_pattern: formData.include_pattern,
       exclude_pattern: formData.exclude_pattern || null,
+      rule_id: rule.id
     };
 
     if (endpoint !== 'scan') {
@@ -70,7 +93,11 @@ export default function New() {
         withCredentials: true,
       });
 
-      setEntries(response.data.entries);
+      if (endpoint === 'apply') {
+        router.visit('/');
+      } else {
+        setEntries(response.data.entries);
+      }
     } catch (error: any) {
       if (error.response?.status === 422) {
         setFormErrors(error.response.data.errors || {});
@@ -85,7 +112,7 @@ export default function New() {
           setIsPreviewing(false);
           break;
         case 'apply':
-          setIsApplying(false);
+          setIsUpdating(false);
           break;
       }
     }
@@ -93,13 +120,13 @@ export default function New() {
 
   return (
     <div>
-      <Head title="New Rule" />
+      <Head title="Edit Rule" />
 
       <div className="max-w-4xl mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Create New Rule</h1>
+          <h1 className="text-2xl font-bold">Edit Rule</h1>
           <Button variant="outline" asChild>
-            <Link href="/">&lt; Back</Link>
+            <Link href="/">{"< Back"}</Link>
           </Button>
         </div>
 
@@ -192,10 +219,10 @@ export default function New() {
 
             <Button
               onClick={() => handleAction('apply')}
-              disabled={isApplying}
+              disabled={isUpdating}
             >
-              {isApplying && <LoaderCircle className="h-4 w-4 animate-spin mr-2" />}
-              Apply
+              {isUpdating && <LoaderCircle className="h-4 w-4 animate-spin mr-2" />}
+              Update Rule
             </Button>
           </div>
         </form>

@@ -24,6 +24,27 @@ class MappingController extends Controller
         ]);
     }
 
+    public function edit(Rule $rule)
+    {
+        return Inertia::render('edit', [
+            'rule' => [
+                'id' => $rule->id,
+                'source_dir' => $rule->source_dir,
+                'target_dir' => $rule->target_dir,
+                'include_pattern' => $rule->include_pattern,
+                'exclude_pattern' => $rule->exclude_pattern,
+                'target_template' => $rule->target_template,
+                'mappings' => $rule->mappings->map(function($mapping) {
+                    return [
+                        'source_name' => $mapping->source_name,
+                        'target_name' => $mapping->target_name,
+                        'processed' => $mapping->processed
+                    ];
+                })->toArray()
+            ]
+        ]);
+    }
+
     public function scan(Request $request)
     {
         $request->validate([
@@ -108,23 +129,51 @@ class MappingController extends Controller
             'target_dir' => 'required|string',
             'include_pattern' => 'required|string',
             'exclude_pattern' => 'nullable|string',
-            'target_template' => 'required|string'
+            'target_template' => 'required|string',
+            'rule_id' => 'nullable|exists:rules,id'
         ]);
 
         $sourcePath = rtrim($request['source_dir'], '/') . '/';
         $targetPath = rtrim($request['target_dir'], '/') . '/';
 
-        $rule = Rule::updateOrCreate(
-            [
+        $rule = $request->rule_id 
+            ? Rule::findOrFail($request->rule_id)
+            : Rule::where('source_dir', $sourcePath)
+                ->where('target_dir', $targetPath)
+                ->first();
+
+        if (!$rule) {
+            $rule = Rule::create([
                 'source_dir' => $sourcePath,
                 'target_dir' => $targetPath,
-            ],
-            [
                 'include_pattern' => $request['include_pattern'],
                 'exclude_pattern' => $request['exclude_pattern'],
                 'target_template' => $request['target_template']
-            ]
-        );
+            ]);
+        } else {
+            $oldSourcePath = $rule->source_dir;
+            $oldTargetPath = $rule->target_dir;
+    
+            if ($oldSourcePath !== $sourcePath || $oldTargetPath !== $targetPath) {                
+                foreach ($rule->mappings as $mapping) {
+                    $oldTargetFile = $oldTargetPath . $mapping->target_name;
+                    if (File::exists($oldTargetFile)) {
+                        File::delete($oldTargetFile);
+                    }
+                }
+
+                // Clean up empty directories
+                $this->cleanupEmptyDirectories($oldTargetPath);
+            }
+
+            $rule->update([
+                'source_dir' => $sourcePath,
+                'target_dir' => $targetPath,
+                'include_pattern' => $request['include_pattern'],
+                'exclude_pattern' => $request['exclude_pattern'],
+                'target_template' => $request['target_template']
+            ]);
+        }
 
         $files = $this->getFiles($request);
         $entries = [];
@@ -195,19 +244,7 @@ class MappingController extends Controller
         }
 
         $targetDir = rtrim($rule->target_dir, '/');
-        $subDirs = $this->getAllSubDirectories($targetDir);
-
-        usort($subDirs, function($a, $b) {
-            return substr_count($b, '/') - substr_count($a, '/');
-        });
-
-        foreach ($subDirs as $dir) {
-            if (File::isDirectory($dir)) {
-                $this->safeRemoveDir($dir);
-            }
-        }
-
-        $this->safeRemoveDir($targetDir);
+        $this->cleanupEmptyDirectories($targetDir);
         $rule->delete();
 
         return redirect()->back();
@@ -253,6 +290,37 @@ class MappingController extends Controller
 
         if (count(File::files($path)) === 0 && count(File::directories($path)) === 0) {
             @rmdir($path);
+        }
+    }
+
+    private function cleanupEmptyDirectories(string $baseDir): void
+    {
+        $dirsToCheck = [];
+
+        // Get all subdirectories under base dir
+        $subDirs = $this->getAllSubDirectories($baseDir);
+        foreach ($subDirs as $dir) {
+            $dirsToCheck[$dir] = true;
+        }
+
+        // Also check parent directories up the tree
+        $parentDir = dirname($baseDir);
+        while ($parentDir !== '/' && $parentDir !== '.') {
+            $dirsToCheck[$parentDir] = true;
+            $parentDir = dirname($parentDir);
+        }
+
+        // Sort by deepest first
+        $sortedDirs = array_keys($dirsToCheck);
+        usort($sortedDirs, function($a, $b) {
+            return substr_count($b, '/') - substr_count($a, '/');
+        });
+
+        // Remove empty directories
+        foreach ($sortedDirs as $dir) {
+            if (File::isDirectory($dir)) {
+                $this->safeRemoveDir($dir);
+            }
         }
     }
 

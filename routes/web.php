@@ -14,6 +14,7 @@ Route::middleware([
 ])->group(function () {
     Route::get('/', [MappingController::class, 'index'])->name('index');
     Route::get('/new', [MappingController::class, 'new'])->name('new');
+    Route::get('/edit/{rule}', [MappingController::class, 'edit'])->name('edit');
 
     Route::post('/scan', [MappingController::class, 'scan'])->name('scan');
     Route::post('/preview', [MappingController::class, 'preview'])->name('preview');
