@@ -104,7 +104,7 @@ export default function Edit({ rule }) {
       <div className="max-w-4xl mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Edit Rule</h1>
-          <Button variant="secondary" asChild>
+          <Button>
             <Link href="/">{"< Back"}</Link>
           </Button>
         </div>
@@ -182,7 +182,6 @@ export default function Edit({ rule }) {
 
           <div className="flex justify-end gap-4">
             <Button
-              variant="secondary"
               onClick={() => handleAction('scan')}
               disabled={isScanning}
             >
@@ -190,7 +189,6 @@ export default function Edit({ rule }) {
             </Button>
 
             <Button
-              variant="secondary"
               onClick={() => handleAction('preview')}
               disabled={isPreviewing}
             >
@@ -208,9 +206,9 @@ export default function Edit({ rule }) {
         </form>
 
         {entries.length > 0 && (
-          <div className="border rounded-lg overflow-hidden">
+          <div className="border border-gray-700 rounded-lg overflow-hidden">
             <table className="w-full">
-              <thead className="bg-gray-100">
+              <thead className="bg-gray-600">
                 <tr>
                   <th className="text-left px-4 py-2">Source Path</th>
                   <th className="text-left px-4 py-2">Target Path</th>
@@ -219,7 +217,7 @@ export default function Edit({ rule }) {
               </thead>
               <tbody>
                 {entries.map((entry, index) => (
-                  <tr key={index} className="hover:bg-gray-50 border-t">
+                  <tr key={index} className="hover:bg-gray-700 border-t border-gray-700">
                     <td className="px-4 py-2 font-mono text-sm">{entry.source}</td>
                     <td className="px-4 py-2 font-mono text-sm">{entry.target ?? "-"}</td>
                     {entry.processed === undefined ? (

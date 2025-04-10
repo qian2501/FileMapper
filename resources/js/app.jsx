@@ -15,7 +15,6 @@ createInertiaApp({
             import.meta.glob('./Pages/**/*.jsx'),
         ),
     setup({ el, App, props }) {
-        console.log(props);
         if (import.meta.env.SSR) {
             hydrateRoot(el, <App {...props} />);
             return;
