@@ -44,7 +44,7 @@ export default function AuthenticatedLayout({ children }) {
         <div className="p-4 border-t border-gray-800">
           <Dropdown>
             <Dropdown.Trigger>
-              <div className="flex items-center space-x-3 cursor-pointer">
+              <div className="flex items-center space-x-3 cursor-pointer p-2 rounded hover:bg-gray-800">
                 <div className="text-left">
                   <div className="text-gray-100 font-medium">{auth.user.name}</div>
                 </div>

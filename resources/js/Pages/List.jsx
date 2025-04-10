@@ -29,7 +29,7 @@ export default function List({ rules }) {
   return (
     <AuthenticatedLayout>
       <Head title="Rule List" />
-      <div className="max-w-4xl mx-auto p-6">
+      <div className="mx-auto p-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Managed Rules</h1>
           <div className="flex gap-4">
@@ -64,7 +64,7 @@ export default function List({ rules }) {
                       </td>
 
                       <td className="p-2 font-mono text-sm">
-                        <div className="flex gap-1">
+                        <div className="flex flex-col gap-1">
                           <CodeBlock className="bg-green-700 px-2 py-1">
                             {rule.include_pattern}
                           </CodeBlock>
