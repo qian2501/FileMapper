@@ -1,0 +1,3 @@
+.decorated-link {
+    @apply underline text-blue-500 hover:text-blue-700 visited:text-purple-600;
+}

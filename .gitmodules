@@ -1,0 +1,3 @@
+[submodule "resources/js/Components"]
+	path = resources/js/Components
+	url = ssh://git@github.com/qian2501/ReactComponents.git

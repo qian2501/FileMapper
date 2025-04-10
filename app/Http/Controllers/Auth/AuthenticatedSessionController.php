@@ -23,7 +23,7 @@ class AuthenticatedSessionController extends Controller
             return redirect(route('register', absolute: false));
         }
 
-        return Inertia::render('auth/login', [
+        return Inertia::render('Auth/Login', [
             'status' => $request->session()->get('status'),
         ]);
     }

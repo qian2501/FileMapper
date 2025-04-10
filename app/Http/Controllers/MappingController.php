@@ -13,20 +13,20 @@ class MappingController extends Controller
     public function index(Request $request)
     {
         $rules = Rule::with('mappings')->get();
-        return Inertia::render('list', [
+        return Inertia::render('List', [
             'rules' => $rules,
         ]);
     }
 
     public function new(Request $request)
     {
-        return Inertia::render('new', [
+        return Inertia::render('New', [
         ]);
     }
 
     public function edit(Rule $rule)
     {
-        return Inertia::render('edit', [
+        return Inertia::render('Edit', [
             'rule' => [
                 'id' => $rule->id,
                 'source_dir' => $rule->source_dir,
