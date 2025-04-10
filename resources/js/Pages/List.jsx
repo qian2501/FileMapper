@@ -55,11 +55,11 @@ export default function List({ rules }) {
                 {rules.map((rule) => (
                   <React.Fragment key={rule.id}>
                     <tr className="border-t border-gray-700 hover:bg-gray-700">
-                      <td className="p-2 font-mono text-sm truncate">
+                      <td className="p-2 font-mono text-sm max-w-[300px] truncate">
                         {rule.source_dir}
                       </td>
                       
-                      <td className="p-2 font-mono text-sm truncate">
+                      <td className="p-2 font-mono text-sm max-w-[300px] truncate">
                         {rule.target_dir}
                       </td>
 

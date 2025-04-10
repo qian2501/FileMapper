@@ -208,7 +208,7 @@ export default function New() {
               </thead>
               <tbody>
                 {entries.map((entry, index) => (
-                  <tr key={index} className="hover:bg-gray-70 border-t border-gray-700 ">
+                  <tr key={index} className="hover:bg-gray-700 border-t border-gray-700 ">
                     <td className="px-4 py-2 font-mono text-sm">{entry.source}</td>
                     <td className="px-4 py-2 font-mono text-sm">{entry.target ?? "-"}</td>
                     {entry.processed === undefined ? (
