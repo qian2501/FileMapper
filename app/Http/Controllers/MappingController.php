@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Auth;
 use App\Models\Rule;
 use App\Models\Mapping;
 use Inertia\Inertia;
@@ -20,7 +21,15 @@ class MappingController extends Controller
 
     public function new(Request $request)
     {
+        $profile = Auth::user()->profile;
         return Inertia::render('New', [
+            'defaults' => $profile ? [
+                'source_dir' => $profile->source_dir,
+                'target_dir' => $profile->target_dir,
+                'include_pattern' => $profile->include_pattern,
+                'exclude_pattern' => $profile->exclude_pattern,
+                'target_template' => $profile->target_template,
+            ] : null
         ]);
     }
 

@@ -6,13 +6,13 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
 
-export default function New() {
+export default function New({ defaults }) {
   const [formData, setFormData] = useState({
-    source_dir: '',
-    target_dir: '',
-    include_pattern: '',
-    exclude_pattern: '',
-    target_template: '',
+    source_dir: defaults?.source_dir ?? '',
+    target_dir: defaults?.target_dir ?? '',
+    include_pattern: defaults?.include_pattern ?? '',
+    exclude_pattern: defaults?.exclude_pattern ?? '',
+    target_template: defaults?.target_template ?? '',
   });
 
   const [entries, setEntries] = useState([]);

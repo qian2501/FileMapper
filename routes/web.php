@@ -1,11 +1,16 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ProfileController;
 use Inertia\Inertia;
 use App\Http\Controllers\MappingController;
 
 Route::get('/', function () {
-    return redirect()->route('login');
+    return view('app');
+});
+
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'show'])->name('profile');
 });
 
 Route::middleware([

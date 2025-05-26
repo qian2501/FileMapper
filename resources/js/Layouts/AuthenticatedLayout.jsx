@@ -52,6 +52,9 @@ export default function AuthenticatedLayout({ children }) {
             </Dropdown.Trigger>
 
             <Dropdown.Content direction="up">
+              <Dropdown.Link href={route('profile')} method="get" as="button">
+                配置
+              </Dropdown.Link>
               <Dropdown.Link href={route('logout')} method="post" as="button">
                 登出
               </Dropdown.Link>
