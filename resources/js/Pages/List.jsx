@@ -34,7 +34,7 @@ export default function List({ rules }) {
           <h1 className="text-2xl font-bold">Managed Rules</h1>
           <div className="flex gap-4">
             <Button variant="primary">
-              <Link href="/new">Create New Rule</Link>
+              <Link href={route('rule.create')}>Create New Rule</Link>
             </Button>
           </div>
         </div>

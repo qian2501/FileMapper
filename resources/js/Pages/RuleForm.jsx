@@ -1,25 +1,38 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Button from '@/Components/Button';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
+import Checkbox from '@/Components/Checkbox';
 
-export default function New({ defaults }) {
+export default function RuleForm({ 
+  initialData = {},
+  isOnetime = false
+}) {
   const [formData, setFormData] = useState({
-    source_dir: defaults?.source_dir ?? '',
-    target_dir: defaults?.target_dir ?? '',
-    include_pattern: defaults?.include_pattern ?? '',
-    exclude_pattern: defaults?.exclude_pattern ?? '',
-    target_template: defaults?.target_template ?? '',
+    source_dir: initialData.source_dir || '',
+    target_dir: initialData.target_dir || '',
+    include_pattern: initialData.include_pattern || '',
+    exclude_pattern: initialData.exclude_pattern || '',
+    target_template: initialData.target_template || '',
   });
 
-  const [entries, setEntries] = useState([]);
+  const [entries, setEntries] = useState(initialData?.mappings || []);
   const [formErrors, setFormErrors] = useState({});
-  const [isScanning, setIsScanning] = useState(false);
-  const [isPreviewing, setIsPreviewing] = useState(false);
-  const [isApplying, setIsApplying] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isOnetimeKeepOriginal, setIsOnetimeKeepOriginal] = useState(true);
+
+  useEffect(() => {
+    if (initialData?.mappings) {
+      setEntries(initialData.mappings.map(mapping => ({
+        source: mapping.source_name,
+        target: mapping.target_name,
+        processed: mapping.processed
+      })));
+    }
+  }, [initialData]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -29,41 +42,23 @@ export default function New({ defaults }) {
     }));
   };
 
-  const handleAction = async (endpoint) => {
-    switch (endpoint) {
-      case 'scan':
-        setIsScanning(true);
-        break;
-      case 'preview':
-        setIsPreviewing(true);
-        break;
-      case 'apply':
-        setIsApplying(true);
-        break;
-    }
-
+  const handleAction = async () => {
+    setIsLoading(true);
     setFormErrors({});
 
-    let payload = {
-      source_dir: formData.source_dir,
-      include_pattern: formData.include_pattern,
-      exclude_pattern: formData.exclude_pattern || null,
+    const endpoint = isOnetime ? 'apply-once' : 'apply';
+    const payload = {
+      ...formData,
+      ...(initialData?.id && { rule_id: initialData.id }),
+      ...(isOnetime && { keep_original: isOnetimeKeepOriginal })
     };
-
-    if (endpoint !== 'scan') {
-      payload = {
-        ...payload,
-        target_dir: formData.target_dir,
-        target_template: formData.target_template,
-      };
-    }
 
     try {
       const response = await axios.post(`/${endpoint}`, payload, {
         withCredentials: true,
       });
 
-      if (endpoint === 'apply') {
+      if (endpoint === 'apply' || endpoint === 'apply-once') {
         router.visit('/');
       } else {
         setEntries(response.data.entries);
@@ -74,27 +69,25 @@ export default function New({ defaults }) {
       }
       console.error('Operation failed:', error);
     } finally {
-      switch (endpoint) {
-        case 'scan':
-          setIsScanning(false);
-          break;
-        case 'preview':
-          setIsPreviewing(false);
-          break;
-        case 'apply':
-          setIsApplying(false);
-          break;
-      }
+      setIsLoading(false);
     }
+  };
+
+  const getButtonText = () => {
+    if (isLoading) return 'Processing...';
+    if (isOnetime) return 'Execute Once';
+    return initialData?.id ? 'Update Rule' : 'Apply';
   };
 
   return (
     <AuthenticatedLayout>
-      <Head title="New Rule" />
+      <Head title={initialData?.id ? "Edit Rule" : isOnetime ? "Onetime Edit" : "Create Rule"} />
 
       <div className="max-w-4xl mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Create New Rule</h1>
+          <h1 className="text-2xl font-bold">
+            {initialData?.id ? 'Edit Rule' : isOnetime ? 'Onetime Edit' : 'Create New Rule'}
+          </h1>
           <Button>
             <Link href="/">{"< Back"}</Link>
           </Button>
@@ -166,32 +159,37 @@ export default function New({ defaults }) {
               className="mt-1 block w-full text-black"
               placeholder="New ($1) File Name.$2"
             />
+            <div>
+              <div className="ml-2 text-sm text-gray-400">Use $n for the n'th matched string.</div>
+              <div className="ml-2 text-sm text-gray-400">Use $n+x to offset matched numbers.</div>
+            </div>
             {formErrors.target_template && (
               <InputError message={formErrors.target_template[0]} className="mt-2" />
             )}
           </div>
 
-          <div className="flex justify-end gap-4">
-            <Button
-              onClick={() => handleAction('scan')}
-              disabled={isScanning}
-            >
-              {isScanning ? 'Scanning...' : 'Scan'}
-            </Button>
+          <div className="flex justify-between gap-4">
+            <div>
+              {isOnetime && (
+                <div>
+                  <Checkbox
+                    name="keep_original"
+                    checked={isOnetimeKeepOriginal}
+                    onChange={(e) => setIsOnetimeKeepOriginal(e.target.checked)}
+                    label="Keep original files"
+                  />
+
+                  <span className="ml-2 text-sm">Keep original files</span>
+                </div>
+              )}
+            </div>
 
             <Button
-              onClick={() => handleAction('preview')}
-              disabled={isPreviewing}
+              onClick={handleAction}
+              disabled={isLoading}
+              variant='primary'
             >
-              {isPreviewing ? 'Previewing...' : 'Preview'}
-            </Button>
-
-            <Button
-              variant="primary"
-              onClick={() => handleAction('apply')}
-              disabled={isApplying}
-            >
-              {isApplying ? 'Applying...' : 'Apply'}
+              {getButtonText()}
             </Button>
           </div>
         </form>
@@ -208,7 +206,7 @@ export default function New({ defaults }) {
               </thead>
               <tbody>
                 {entries.map((entry, index) => (
-                  <tr key={index} className="hover:bg-gray-700 border-t border-gray-700 ">
+                  <tr key={index} className="hover:bg-gray-700 border-t border-gray-700">
                     <td className="px-4 py-2 font-mono text-sm">{entry.source}</td>
                     <td className="px-4 py-2 font-mono text-sm">{entry.target ?? "-"}</td>
                     {entry.processed === undefined ? (

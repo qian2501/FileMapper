@@ -19,24 +19,40 @@ class MappingController extends Controller
         ]);
     }
 
-    public function new(Request $request)
+    public function create(Request $request)
     {
         $profile = Auth::user()->profile;
-        return Inertia::render('New', [
-            'defaults' => $profile ? [
+        return Inertia::render('RuleForm', [
+            'initialData' => $profile ? [
                 'source_dir' => $profile->source_dir,
                 'target_dir' => $profile->target_dir,
                 'include_pattern' => $profile->include_pattern,
                 'exclude_pattern' => $profile->exclude_pattern,
                 'target_template' => $profile->target_template,
-            ] : null
+            ] : [],
+            'isOnetime' => $request->has('onetime')
+        ]);
+    }
+
+    public function onetime(Request $request)
+    {
+        $profile = Auth::user()->profile;
+        return Inertia::render('RuleForm', [
+            'initialData' => $profile ? [
+                'source_dir' => $profile->source_dir,
+                'target_dir' => $profile->target_dir,
+                'include_pattern' => $profile->include_pattern,
+                'exclude_pattern' => $profile->exclude_pattern,
+                'target_template' => $profile->target_template,
+            ] : [],
+            'isOnetime' => true
         ]);
     }
 
     public function edit(Rule $rule)
     {
-        return Inertia::render('Edit', [
-            'rule' => [
+        return Inertia::render('RuleForm', [
+            'initialData' => [
                 'id' => $rule->id,
                 'source_dir' => $rule->source_dir,
                 'target_dir' => $rule->target_dir,
@@ -129,6 +145,52 @@ class MappingController extends Controller
         return response()->json([
             'entries' => $entries
         ]);
+    }
+
+    public function applyOnce(Request $request)
+    {
+        $request->validate([
+            'source_dir' => 'required|string',
+            'target_dir' => 'required|string',
+            'include_pattern' => 'required|string',
+            'exclude_pattern' => 'nullable|string',
+            'target_template' => 'required|string',
+            'keep_original' => 'required|boolean'
+        ]);
+
+        $files = $this->getFiles($request);
+        $entries = [];
+
+        foreach ($files as $file) {
+            $relativePath = $file->getRelativePathname();
+            $pathInfo = pathinfo($relativePath);
+            $filename = $pathInfo['basename'];
+            $dir = $pathInfo['dirname'] !== '.' ? $pathInfo['dirname'] . '/' : '';
+
+            $newFilename = $this->processFilename(
+                $request['include_pattern'],
+                $request['target_template'],
+                $filename
+            );
+            $targetName = $dir . $newFilename;
+
+            $sourceFull = $request['source_dir'] . $relativePath;
+            $targetFull = $request['target_dir'] . $targetName;
+
+            if ($request['keep_original']) {
+                $this->linking($sourceFull, $targetFull);
+            } else {
+                $this->moveFile($sourceFull, $targetFull);
+            }
+            
+            $entries[] = [
+                'source' => $relativePath,
+                'target' => $targetName,
+                'status' => $request['keep_original'] ? 'linked' : 'moved'
+            ];
+        }
+
+        return response()->json(['entries' => $entries]);
     }
 
     public function apply(Request $request)
@@ -367,6 +429,17 @@ class MappingController extends Controller
             // Convert to use absolute paths for symlinks
             $source = realpath($source);
             symlink($source, $target);
+        }
+    }
+
+    private function moveFile($source, $target)
+    {
+        $targetDir = dirname($target);
+        if (!File::exists($targetDir)) {
+            File::makeDirectory($targetDir, 0755, true);
+        }
+        if (!File::exists($target)) {
+            File::move($source, $target);
         }
     }
 }

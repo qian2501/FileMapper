@@ -10,10 +10,12 @@ export default function AuthenticatedLayout({ children }) {
 
   var routes = [
     'index',
+    'rule.onetime'
   ];
 
   var routesDisplay = [
-    'Rules',
+    'Managed Rules',
+    'Onetime Edit'
   ];
 
   const [showingNavigationDropdown, setShowingNavigationDropdown] = useState(false);
@@ -44,8 +46,8 @@ export default function AuthenticatedLayout({ children }) {
         <div className="p-4 border-t border-gray-800">
           <Dropdown>
             <Dropdown.Trigger>
-              <div className="flex items-center space-x-3 cursor-pointer p-2 rounded hover:bg-gray-800">
-                <div className="text-left">
+              <div className="flex justify-center space-x-3 cursor-pointer p-2 rounded hover:bg-gray-800">
+                <div className="text-center">
                   <div className="text-gray-100 font-medium">{auth.user.name}</div>
                 </div>
               </div>
@@ -53,10 +55,10 @@ export default function AuthenticatedLayout({ children }) {
 
             <Dropdown.Content direction="up">
               <Dropdown.Link href={route('profile')} method="get" as="button">
-                配置
+                Settings
               </Dropdown.Link>
               <Dropdown.Link href={route('logout')} method="post" as="button">
-                登出
+                Logout
               </Dropdown.Link>
             </Dropdown.Content>
           </Dropdown>
@@ -105,12 +107,20 @@ export default function AuthenticatedLayout({ children }) {
 
             <div className="border-t border-gray-700 mt-2">
               <ResponsiveNavLink
+                method="get"
+                href={route('profile')}
+                as="button"
+                className="block w-full text-center px-6 py-4 text-gray-100 hover:text-gray-300"
+              >
+                Settings
+              </ResponsiveNavLink>
+              <ResponsiveNavLink
                 method="post"
                 href={route('logout')}
                 as="button"
                 className="block w-full text-center px-6 py-4 text-gray-100 hover:text-gray-300"
               >
-                登出
+                Logout
               </ResponsiveNavLink>
             </div>
           </div>
