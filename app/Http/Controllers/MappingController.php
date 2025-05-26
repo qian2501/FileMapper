@@ -93,7 +93,7 @@ class MappingController extends Controller
             $filename = $pathInfo['basename'];
             $dir = $pathInfo['dirname'] !== '.' ? $pathInfo['dirname'] . '/' : '';
 
-            $newFilename = preg_replace(
+            $newFilename = $this->processFilename(
                 $request['include_pattern'],
                 $request['target_template'],
                 $filename
@@ -136,6 +136,7 @@ class MappingController extends Controller
         $sourcePath = rtrim($request['source_dir'], '/') . '/';
         $targetPath = rtrim($request['target_dir'], '/') . '/';
 
+        // 1. Handle Rules
         $rule = $request->rule_id 
             ? Rule::findOrFail($request->rule_id)
             : Rule::where('source_dir', $sourcePath)
@@ -175,6 +176,7 @@ class MappingController extends Controller
             ]);
         }
 
+        // 2. Handle individual files
         $files = $this->getFiles($request);
         $entries = [];
 
@@ -184,33 +186,36 @@ class MappingController extends Controller
             $filename = $pathInfo['basename'];
             $dir = $pathInfo['dirname'] !== '.' ? $pathInfo['dirname'] . '/' : '';
 
-            $newFilename = preg_replace(
+            $newFilename = $this->processFilename(
                 $request['include_pattern'],
                 $request['target_template'],
                 $filename
             );
             $targetName = $dir . $newFilename;
 
-            $mapping = Mapping::updateOrCreate(
-                [
-                    'rule_id' => $rule->id,
-                    'source_name' => $relativePath
-                ],
-                ['target_name' => $targetName]
-            );
+            // First get existing mapping if any
+            $mapping = Mapping::firstOrNew([
+                'rule_id' => $rule->id,
+                'source_name' => $relativePath
+            ]);
 
             $sourceFull = $sourcePath . $relativePath;
             $targetFull = $targetPath . $targetName;
 
-            if ($mapping->target_name !== $targetName) {
-                if (File::exists($targetPath . $mapping->target_name)) {
-                    File::delete($targetPath . $mapping->target_name);
+            // Handle filename changes by checking if target_name exists and differs
+            if ($mapping->exists && $mapping->target_name !== $targetName) {
+                $oldTargetFull = $targetPath . $mapping->target_name;
+                if (File::exists($oldTargetFull)) {
+                    File::delete($oldTargetFull);
                 }
-                $mapping->update(['target_name' => $targetName]);
             }
 
+            // Update mapping with new target name
+            $mapping->target_name = $targetName;
+            $mapping->save();
+
             if (!$mapping->processed || !File::exists($targetFull)) {
-                $this->hardLinking($sourceFull, $targetFull);
+                $this->linking($sourceFull, $targetFull);
                 $mapping->update(['processed' => true]);
             }
 
@@ -324,14 +329,35 @@ class MappingController extends Controller
         }
     }
 
-    private function hardLinking($source, $target)
+    private function processFilename($pattern, $template, $filename)
+    {
+        return preg_replace_callback($pattern, function($matches) use ($template) {
+            return preg_replace_callback('/\$(\d+)([+-]\d+)?/', function($m) use ($matches) {
+                $index = $m[1];
+                $value = $matches[$index] ?? '';
+                
+                if (is_numeric($value) && isset($m[2])) {
+                    $operator = $m[2][0];
+                    $operand = substr($m[2], 1);
+                    return $operator === '+' 
+                        ? $value + $operand
+                        : $value - $operand;
+                }
+                return $value;
+            }, $template);
+        }, $filename);
+    }
+
+    private function linking($source, $target)
     {
         $targetDir = dirname($target);
         if (!File::exists($targetDir)) {
             File::makeDirectory($targetDir, 0755, true);
         }
         if (!File::exists($target)) {
-            link($source, $target);
+            // Convert to use absolute paths for symlinks
+            $source = realpath($source);
+            symlink($source, $target);
         }
     }
 }
