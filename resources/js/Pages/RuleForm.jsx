@@ -21,7 +21,9 @@ export default function RuleForm({
 
   const [entries, setEntries] = useState(initialData?.mappings || []);
   const [formErrors, setFormErrors] = useState({});
-  const [isLoading, setIsLoading] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [isPreviewing, setIsPreviewing] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
   const [isOnetimeKeepOriginal, setIsOnetimeKeepOriginal] = useState(true);
 
   useEffect(() => {
@@ -42,11 +44,21 @@ export default function RuleForm({
     }));
   };
 
-  const handleAction = async () => {
-    setIsLoading(true);
+  const handleAction = async (endpoint) => {
+    switch (endpoint) {
+      case 'scan':
+        setIsScanning(true);
+        break;
+      case 'preview':
+        setIsPreviewing(true);
+        break;
+      case 'apply':
+      case 'apply-once':
+        setIsApplying(true);
+        break;
+    }
     setFormErrors({});
 
-    const endpoint = isOnetime ? 'apply-once' : 'apply';
     const payload = {
       ...formData,
       ...(initialData?.id && { rule_id: initialData.id }),
@@ -69,14 +81,19 @@ export default function RuleForm({
       }
       console.error('Operation failed:', error);
     } finally {
-      setIsLoading(false);
+      switch (endpoint) {
+        case 'scan':
+          setIsScanning(false);
+          break;
+        case 'preview':
+          setIsPreviewing(false);
+          break;
+        case 'apply':
+        case 'apply-once':
+          setIsApplying(false);
+          break;
+      }
     }
-  };
-
-  const getButtonText = () => {
-    if (isLoading) return 'Processing...';
-    if (isOnetime) return 'Execute Once';
-    return initialData?.id ? 'Update Rule' : 'Apply';
   };
 
   return (
@@ -88,9 +105,10 @@ export default function RuleForm({
           <h1 className="text-2xl font-bold">
             {initialData?.id ? 'Edit Rule' : isOnetime ? 'Onetime Edit' : 'Create New Rule'}
           </h1>
-          <Button>
-            <Link href="/">{"< Back"}</Link>
-          </Button>
+
+          <Link href="/">
+            <Button>{"< Back"}</Button>
+          </Link>
         </div>
 
         <form className="space-y-6">
@@ -184,13 +202,29 @@ export default function RuleForm({
               )}
             </div>
 
-            <Button
-              onClick={handleAction}
-              disabled={isLoading}
-              variant='primary'
-            >
-              {getButtonText()}
-            </Button>
+            <div className="flex justify-end gap-4">
+              <Button
+                onClick={() => handleAction('scan')}
+                disabled={isScanning}
+              >
+                {isScanning ? 'Scanning...' : 'Scan'}
+              </Button>
+
+              <Button
+                onClick={() => handleAction('preview')}
+                disabled={isPreviewing}
+              >
+                {isPreviewing ? 'Previewing...' : 'Preview'}
+              </Button>
+
+              <Button
+                onClick={() => handleAction(isOnetime ? 'apply-once' : 'apply')}
+                disabled={isApplying}
+                variant='primary'
+              >
+                {isApplying ? 'Processing...' : isOnetime ? 'Execute Once' : initialData?.id ? 'Update Rule' : 'Apply'}
+              </Button>
+            </div>
           </div>
         </form>
 

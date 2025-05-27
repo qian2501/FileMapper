@@ -33,9 +33,9 @@ export default function List({ rules }) {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Managed Rules</h1>
           <div className="flex gap-4">
-            <Button variant="primary">
-              <Link href={route('rule.create')}>Create New Rule</Link>
-            </Button>
+            <Link href={route('rule.create')}>
+              <Button variant="primary">Create New Rule</Button>
+            </Link>
           </div>
         </div>
 
@@ -130,7 +130,7 @@ export default function List({ rules }) {
 
                             <div className="flex justify-end gap-2">
                               <Button>
-                                <Link href={`/edit/${rule.id}`}>Edit</Link>
+                                <Link href={`/rule/${rule.id}`}>Edit</Link>
                               </Button>
                               <Button
                                 variant="danger"
