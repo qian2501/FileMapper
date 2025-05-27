@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
-import ApplicationLogo from '@/Components/Logos/ApplicationLogo';
+import ApplicationLogo from '@/Logos/ApplicationLogo';
 import Dropdown from '@/Components/Dropdown';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
 import Button from '@/Components/Button';
@@ -23,10 +23,10 @@ export default function AuthenticatedLayout({ children }) {
   return (
     <div className="min-h-screen bg-gray-800 text-gray-100 flex">
       {/* Sidebar - Hidden on mobile */}
-      <div className="hidden sm:flex flex flex-col p-4 border-r border-gray-800 bg-gray-700">
+      <div className="hidden sm:flex fixed top-0 bottom-0 left-0 w-48 flex-col p-4 border-r border-gray-800 bg-gray-700">
         {/* Sidebar Header */}
         <div className="py-6">
-          <ApplicationLogo className="h-8 m-auto" />
+          <ApplicationLogo className="h-12 m-auto" />
         </div>
 
         {/* Sidebar Content */}
@@ -128,7 +128,7 @@ export default function AuthenticatedLayout({ children }) {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col ml-48">
         <main className="flex-1 p-4">{children}</main>
       </div>
     </div>
