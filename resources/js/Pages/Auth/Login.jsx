@@ -20,7 +20,7 @@ export default function Login({ props, status }) {
         };
     }, []);
 
-    const onHandleChange = (event) => {
+    const handleChange = (event) => {
         setData(event.target.name, event.target.type === 'checkbox' ? event.target.checked : event.target.value);
     };
 
@@ -47,7 +47,7 @@ export default function Login({ props, status }) {
                         className="mt-1 block w-full text-black"
                         autoComplete="username"
                         isFocused={true}
-                        handleChange={onHandleChange}
+                        handleChange={(e) => handleChange(e)}
                     />
 
                     <InputError message={errors.name} className="mt-2" />
@@ -62,7 +62,7 @@ export default function Login({ props, status }) {
                         value={data.password}
                         className="mt-1 block w-full text-black"
                         autoComplete="current-password"
-                        handleChange={onHandleChange}
+                        handleChange={handleChange}
                     />
 
                     <InputError message={errors.password} className="mt-2" />
@@ -70,7 +70,7 @@ export default function Login({ props, status }) {
 
                 <div className="block mt-4">
                     <label className="flex items-center">
-                        <Checkbox name="remember" value={data.remember} handleChange={onHandleChange} />
+                        <Checkbox name="remember" value={data.remember} handleChange={handleChange} />
 
                         <span className="ml-2 text-sm text-gray-400">Remember me</span>
                     </label>

@@ -101,7 +101,7 @@ export default function Profile({ defaults }) {
               value={data.target_template}
               handleChange={(e) => setData('target_template', e.target.value)}
               className="mt-1 block w-full text-black"
-              placeholder="New ($1) File Name.$2"
+              placeholder="New File Name $1+1.$2"
             />
             {errors.target_template && (
               <InputError message={errors.target_template} className="mt-2" />

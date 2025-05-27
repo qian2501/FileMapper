@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Rule;
 use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -18,5 +19,7 @@ class DatabaseSeeder extends Seeder
         User::factory()->create([
             'name' => 'Test User',
         ]);
+
+        Rule::factory(50)->create();
     }
 }

@@ -3,6 +3,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Button from '@/Components/Button';
 import CodeBlock from '@/Components/CodeBlock';
+import Pagination from '@/Components/Pagination';
 
 export default function List({ paginatedRules }) {
   const { data: rules, current_page, last_page } = paginatedRules;
@@ -160,8 +161,8 @@ export default function List({ paginatedRules }) {
             <Pagination
               curPage={current_page - 1}
               maxPage={last_page}
-              handleClick={(newPage) => {
-                router.get(route('rules.list'), { page: newPage + 1 }, {
+              onPageChange={(newPage) => {
+                router.get(route('index'), { page: newPage + 1 }, {
                   preserveScroll: true,
                   preserveState: true
                 });

@@ -175,7 +175,7 @@ export default function RuleForm({
               value={formData.target_template}
               handleChange={handleInputChange}
               className="mt-1 block w-full text-black"
-              placeholder="New ($1) File Name.$2"
+              placeholder="New File Name $1+1.$2"
             />
             <div>
               <div className="ml-2 text-sm text-gray-400">Use $n for the n'th matched string.</div>
