@@ -128,8 +128,8 @@ export default function AuthenticatedLayout({ children }) {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col ml-48">
-        <main className="flex-1 p-4">{children}</main>
+      <div className="flex-1 flex flex-col sm:ml-48">
+        <main className="flex-1 px-4 py-8 sm:py-4">{children}</main>
       </div>
     </div>
   );
