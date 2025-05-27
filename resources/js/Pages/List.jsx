@@ -4,7 +4,8 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Button from '@/Components/Button';
 import CodeBlock from '@/Components/CodeBlock';
 
-export default function List({ rules }) {
+export default function List({ paginatedRules }) {
+  const { data: rules, current_page, last_page } = paginatedRules;
   const [expandedRows, setExpandedRows] = useState(new Set());
 
   const toggleRow = (ruleId) => {
@@ -39,7 +40,7 @@ export default function List({ rules }) {
           </div>
         </div>
 
-        {rules.length > 0 ? (
+        {rules && rules.length > 0 ? (
           <div className="border border-gray-700 rounded-lg overflow-hidden">
             <table className="w-full">
               <thead className="bg-gray-600">
@@ -151,6 +152,21 @@ export default function List({ rules }) {
         ) : (
           <div className="p-8 text-center text-gray-500">
             No rules created yet. Click the button above to create a new rule.
+          </div>
+        )}
+
+        {last_page > 1 && (
+          <div className="mt-6">
+            <Pagination
+              curPage={current_page - 1}
+              maxPage={last_page}
+              handleClick={(newPage) => {
+                router.get(route('rules.list'), { page: newPage + 1 }, {
+                  preserveScroll: true,
+                  preserveState: true
+                });
+              }}
+            />
           </div>
         )}
       </div>

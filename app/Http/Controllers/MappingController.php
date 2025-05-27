@@ -13,9 +13,15 @@ class MappingController extends Controller
 {
     public function index(Request $request)
     {
-        $rules = Rule::with('mappings')->get();
+        $perPage = $request->input('per_page', 15);
+        
+        $rules = Rule::with('mappings')
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage)
+            ->appends($request->except('page'));
+
         return Inertia::render('List', [
-            'rules' => $rules,
+            'paginatedRules' => $rules->toArray()
         ]);
     }
 
