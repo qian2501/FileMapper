@@ -11,6 +11,7 @@ Route::get('/', function () {
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile');
+    Route::post('/profile', [ProfileController::class, 'store'])->name('profile.save');
 });
 
 Route::middleware([
@@ -25,7 +26,8 @@ Route::middleware([
     Route::post('/scan', [MappingController::class, 'scan'])->name('scan');
     Route::post('/preview', [MappingController::class, 'preview'])->name('preview');
     Route::post('/apply', [MappingController::class, 'apply'])->name('apply');
-    Route::post('/apply-once', [MappingController::class, 'applyOnce'])->name('apply.onetime');
+    Route::post('/update', [MappingController::class, 'update'])->name('apply.update');
+    Route::post('/onetime', [MappingController::class, 'applyOnce'])->name('apply.onetime');
     Route::post('/remove', [MappingController::class, 'delete'])->name('delete');
 });
 

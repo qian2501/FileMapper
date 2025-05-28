@@ -206,54 +206,20 @@ class MappingController extends Controller
             'target_dir' => 'required|string',
             'include_pattern' => 'required|string',
             'exclude_pattern' => 'nullable|string',
-            'target_template' => 'required|string',
-            'rule_id' => 'nullable|exists:rules,id'
+            'target_template' => 'required|string'
         ]);
 
         $sourcePath = rtrim($request['source_dir'], '/') . '/';
         $targetPath = rtrim($request['target_dir'], '/') . '/';
 
-        // 1. Handle Rules
-        $rule = $request->rule_id 
-            ? Rule::findOrFail($request->rule_id)
-            : Rule::where('source_dir', $sourcePath)
-                ->where('target_dir', $targetPath)
-                ->first();
+        $rule = Rule::create([
+            'source_dir' => $sourcePath,
+            'target_dir' => $targetPath,
+            'include_pattern' => $request['include_pattern'],
+            'exclude_pattern' => $request['exclude_pattern'],
+            'target_template' => $request['target_template']
+        ]);
 
-        if (!$rule) {
-            $rule = Rule::create([
-                'source_dir' => $sourcePath,
-                'target_dir' => $targetPath,
-                'include_pattern' => $request['include_pattern'],
-                'exclude_pattern' => $request['exclude_pattern'],
-                'target_template' => $request['target_template']
-            ]);
-        } else {
-            $oldSourcePath = $rule->source_dir;
-            $oldTargetPath = $rule->target_dir;
-    
-            if ($oldSourcePath !== $sourcePath || $oldTargetPath !== $targetPath) {                
-                foreach ($rule->mappings as $mapping) {
-                    $oldTargetFile = $oldTargetPath . $mapping->target_name;
-                    if (File::exists($oldTargetFile)) {
-                        File::delete($oldTargetFile);
-                    }
-                }
-
-                // Clean up empty directories
-                $this->cleanupEmptyDirectories($oldTargetPath);
-            }
-
-            $rule->update([
-                'source_dir' => $sourcePath,
-                'target_dir' => $targetPath,
-                'include_pattern' => $request['include_pattern'],
-                'exclude_pattern' => $request['exclude_pattern'],
-                'target_template' => $request['target_template']
-            ]);
-        }
-
-        // 2. Handle individual files
         $files = $this->getFiles($request);
         $entries = [];
 
@@ -271,27 +237,120 @@ class MappingController extends Controller
             $targetName = $dir . $newFilename;
 
             // First get existing mapping if any
-            $mapping = Mapping::firstOrNew([
+            $mapping = Mapping::create([
                 'rule_id' => $rule->id,
-                'source_name' => $relativePath
+                'source_name' => $relativePath,
+                'target_name' => $targetName
             ]);
 
-            $sourceFull = $sourcePath . $relativePath;
-            $targetFull = $targetPath . $targetName;
+            if (File::exists($targetPath . $targetName)) {
+                // error
+            }
 
-            // Handle filename changes by checking if target_name exists and differs
-            if ($mapping->exists && $mapping->target_name !== $targetName) {
-                $oldTargetFull = $targetPath . $mapping->target_name;
+            $this->linking($sourcePath . $relativePath, $targetPath . $targetName);
+            $mapping->update(['processed' => true]);
+
+            $entries[] = [
+                'source' => $relativePath,
+                'target' => $targetName,
+                'processed' => $mapping->processed,
+            ];
+        }
+
+        return response()->json([
+            'entries' => $entries
+        ]);
+    }
+
+    public function update(Request $request)
+    {
+        $request->validate([
+            'source_dir'      => 'required|string',
+            'target_dir'      => 'required|string',
+            'include_pattern' => 'required|string',
+            'exclude_pattern' => 'nullable|string',
+            'target_template' => 'required|string',
+            'rule_id'         => 'required|exists:rules,id'
+        ]);
+
+        $sourcePath = rtrim($request['source_dir'], '/') . '/';
+        $targetPath = rtrim($request['target_dir'], '/') . '/';
+
+        // Get the rule and old paths
+        $rule = Rule::find($request['rule_id']);
+        $oldSourcePath = $rule->source_dir;
+        $oldTargetPath = $rule->target_dir;
+
+        // Update the rule
+        $rule->update([
+            'source_dir' => $sourcePath,
+            'target_dir' => $targetPath,
+            'include_pattern' => $request['include_pattern'],
+            'exclude_pattern' => $request['exclude_pattern'],
+            'target_template' => $request['target_template']
+        ]);
+
+        // Handle path changes
+        if ($oldSourcePath !== $sourcePath || $oldTargetPath !== $targetPath) {
+            foreach ($rule->mappings as $mapping) {
+                $oldTargetFull = $oldTargetPath . $mapping->target_name;
                 if (File::exists($oldTargetFull)) {
                     File::delete($oldTargetFull);
                 }
             }
 
-            // Update mapping with new target name
-            $mapping->target_name = $targetName;
-            $mapping->save();
+            if (File::exists($oldTargetPath)) {
+                $this->cleanupEmptyDirectories($oldTargetPath);
+            }
+        }
 
-            if (!$mapping->processed || !File::exists($targetFull)) {
+        // Get current mappings
+        $existingMappings = $rule->mappings()->get()->keyBy('source_name');
+        $files = $this->getFiles($request);
+        $entries = [];
+
+        foreach ($files as $file) {
+            $relativePath = $file->getRelativePathname();
+            $pathInfo = pathinfo($relativePath);
+            $filename = $pathInfo['basename'];
+            $dir = $pathInfo['dirname'] !== '.' ? $pathInfo['dirname'] . '/' : '';
+
+            $newFilename = $this->processFilename(
+                $request['include_pattern'],
+                $request['target_template'],
+                $filename
+            );
+            $targetName = $dir . $newFilename;
+
+            // Update or create mapping
+            if ($existingMappings->has($relativePath)) {
+                $mapping = $existingMappings[$relativePath];
+                $oldTargetFull = $oldTargetPath . $mapping->target_name;
+                if (File::exists($oldTargetFull)) {
+                    File::delete($oldTargetFull);
+                }
+                $mapping->update([
+                    'target_name' => $targetName,
+                    'processed' => false
+                ]);
+            } else {
+                $mapping = Mapping::create([
+                    'rule_id' => $rule->id,
+                    'source_name' => $relativePath,
+                    'target_name' => $targetName,
+                    'processed' => false
+                ]);
+            }
+
+            // Process the file if not already processed
+            if (!$mapping->processed) {
+                $sourceFull = $sourcePath . $relativePath;
+                $targetFull = $targetPath . $targetName;
+
+                if (File::exists($targetFull)) {
+                    continue;
+                }
+
                 $this->linking($sourceFull, $targetFull);
                 $mapping->update(['processed' => true]);
             }
@@ -301,6 +360,25 @@ class MappingController extends Controller
                 'target' => $targetName,
                 'processed' => $mapping->processed,
             ];
+        }
+
+        // Clean up mappings and files that no longer exist
+        $currentSourceNames = $files->map(fn($file) => $file->getRelativePathname())->toArray();
+        $obsoleteMappings = $rule->mappings()
+            ->whereNotIn('source_name', $currentSourceNames)
+            ->get();
+
+        foreach ($obsoleteMappings as $mapping) {
+            $targetFile = $oldTargetPath . $mapping->target_name;
+            if (File::exists($targetFile)) {
+                File::delete($targetFile);
+            }
+            $mapping->delete();
+        }
+
+        // Clean up empty directories
+        if (File::exists($oldTargetPath)) {
+            $this->cleanupEmptyDirectories($oldTargetPath);
         }
 
         return response()->json([

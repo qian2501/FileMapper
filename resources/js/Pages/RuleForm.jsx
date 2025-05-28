@@ -53,7 +53,8 @@ export default function RuleForm({
         setIsPreviewing(true);
         break;
       case 'apply':
-      case 'apply-once':
+      case 'apply.update':
+      case 'apply.onetime':
         setIsApplying(true);
         break;
     }
@@ -66,14 +67,14 @@ export default function RuleForm({
     };
 
     try {
-      const response = await axios.post(`/${endpoint}`, payload, {
+      const response = await axios.post(route(endpoint), payload, {
         withCredentials: true,
       });
 
-      if (endpoint === 'apply' || endpoint === 'apply-once') {
-        router.visit('/');
-      } else {
+      if (endpoint === 'scan' || endpoint === 'preview') {
         setEntries(response.data.entries);
+      } else {
+        router.visit('/');
       }
     } catch (error) {
       if (error.response?.status === 422) {
@@ -89,7 +90,8 @@ export default function RuleForm({
           setIsPreviewing(false);
           break;
         case 'apply':
-        case 'apply-once':
+        case 'apply.update':
+        case 'apply.onetime':
           setIsApplying(false);
           break;
       }
@@ -218,7 +220,7 @@ export default function RuleForm({
               </Button>
 
               <Button
-                onClick={() => handleAction(isOnetime ? 'apply-once' : 'apply')}
+                onClick={() => handleAction(isOnetime ? 'apply.onetime' : initialData?.id ? 'apply.update' : 'apply')}
                 disabled={isApplying}
                 variant='primary'
               >
