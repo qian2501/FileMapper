@@ -494,9 +494,18 @@ class MappingController extends Controller
                 if (is_numeric($value) && isset($m[2])) {
                     $operator = $m[2][0];
                     $operand = substr($m[2], 1);
-                    return $operator === '+' 
+                    $result = $operator === '+' 
                         ? $value + $operand
                         : $value - $operand;
+                    
+                    // Preserve leading zeros if original had them and result fits
+                    if (preg_match('/^0\d+$/', $value)) {
+                        $length = strlen($value);
+                        if (strlen((string)$result) <= $length) {
+                            return str_pad($result, $length, '0', STR_PAD_LEFT);
+                        }
+                    }
+                    return $result;
                 }
                 return $value;
             }, $template);
