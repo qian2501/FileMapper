@@ -131,9 +131,9 @@ export default function List({ paginatedRules }) {
                             </div>
 
                             <div className="flex justify-end gap-2">
-                              <Button>
-                                <Link href={`/rule/${rule.id}`}>Edit</Link>
-                              </Button>
+                              <Link href={`/rule/${rule.id}`}>
+                                <Button>Edit</Button>
+                              </Link>
                               <Button
                                 variant="danger"
                                 onClick={() => handleUndo(rule.id)}
