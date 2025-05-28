@@ -512,6 +512,8 @@ class MappingController extends Controller
         if (!File::exists($target)) {
             // Convert to use absolute paths for symlinks
             $source = realpath($source);
+            // Ensure UTF-8 encoding for Chinese characters
+            $target = mb_convert_encoding($target, 'UTF-8');
             symlink($source, $target);
         }
     }
